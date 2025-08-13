@@ -17,7 +17,7 @@ connectDB();
 // Middleware CORS - Permet toutes les origines pour le développement
 app.use(
   cors({
-    origin: "https://www.mysmartcrm.fr/contact",
+    origin: "https://www.mysmartcrm.fr",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
