@@ -17,8 +17,7 @@ connectDB();
 // Middleware CORS - Permet toutes les origines pour le développement
 app.use(
   cors({
-    origin:
-      "smart-crm-website-frontend-eb45hhvlz-axels-projects-6d301c83.vercel.app",
+    origin: "https://www.mysmartcrm.fr/contact",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -51,5 +50,5 @@ app.use("*", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Serveur SmartCRM démarré sur le port ${PORT}`);
-  console.log(`API disponible sur http://localhost:${PORT}`);
+  console.log(`API disponible sur https://smartcrm-website.onrender.com:${PORT}`);
 });
