@@ -14,6 +14,16 @@ router.get("/test", (req, res) => {
   });
 });
 
+// Route ping pour les health checks
+router.get("/ping", (req, res) => {
+  res.json({
+    status: "alive",
+    message: "Serveur réactivé avec succès",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 // Route de santé du serveur
 router.get("/health", (req, res) => {
   res.json({

@@ -31,6 +31,15 @@ app.get("/", (req, res) => {
   res.json({ message: "API SmartCRM Backend - Serveur opérationnel" });
 });
 
+// Route ping simple pour les bots et health checks
+app.get("/ping", (req, res) => {
+  res.json({ 
+    status: "alive", 
+    timestamp: new Date().toISOString(),
+    message: "Pong! API SmartCRM opérationnelle"
+  });
+});
+
 // Routes API
 app.use("/api", apiRoutes);
 
