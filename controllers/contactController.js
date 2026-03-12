@@ -4,13 +4,11 @@ const {
   sendNotificationEmail,
 } = require("../utils/emailService");
 
-// Créer un nouveau contact
 const createContact = async (req, res) => {
   try {
     const { name, email, company, subject, message } = req.body;
 
-    // Créer le contact en base
-    const contact = new Contact({
+    const contact = await Contact.create({
       name,
       email,
       company,
@@ -18,9 +16,6 @@ const createContact = async (req, res) => {
       message,
     });
 
-    await contact.save();
-
-    // Envoyer les emails (en arrière-plan pour ne pas bloquer la réponse)
     Promise.all([
       sendConfirmationEmail({ name, email, subject, message }),
       sendNotificationEmail({
@@ -28,10 +23,10 @@ const createContact = async (req, res) => {
         email,
         company,
         subject,
-        message
+        message,
       }),
     ]).catch((error) => {
-      console.error("❌ Erreur envoi emails:", error);
+      console.error("Erreur envoi emails:", error);
     });
 
     res.status(201).json({
@@ -39,27 +34,21 @@ const createContact = async (req, res) => {
       message:
         "Message envoyé avec succès ! Nous vous répondrons dans les plus brefs délais.",
       data: {
-        id: contact._id,
+        id: contact.id,
         name: contact.name,
         email: contact.email,
         subject: contact.subject,
       },
     });
   } catch (error) {
-    console.error("❌ Erreur création contact:", error);
-
-    // Gestion des erreurs MongoDB
-    if (error.name === "ValidationError") {
+    console.error("Erreur création contact:", error);
+    if (error.code === "23502" || error.code === "23514") {
       return res.status(400).json({
         success: false,
         message: "Données invalides",
-        errors: Object.values(error.errors).map((err) => ({
-          field: err.path,
-          message: err.message,
-        })),
+        errors: [{ message: error.message }],
       });
     }
-
     res.status(500).json({
       success: false,
       message: "Erreur interne du serveur",
@@ -67,37 +56,31 @@ const createContact = async (req, res) => {
   }
 };
 
-// Récupérer tous les contacts (pour admin)
 const getAllContacts = async (req, res) => {
   try {
     const { page = 1, limit = 10, status } = req.query;
+    const limitNum = Math.min(parseInt(limit, 10) || 10, 100);
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const offset = (pageNum - 1) * limitNum;
 
-    const filter = {};
-    if (status) {
-      filter.status = status;
-    }
-
-    const contacts = await Contact.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .select("-__v");
-
-    const total = await Contact.countDocuments(filter);
+    const [contacts, total] = await Promise.all([
+      Contact.findWithFilter({ status, limit: limitNum, offset }),
+      Contact.countFilter(status),
+    ]);
 
     res.json({
       success: true,
       data: contacts,
       pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / limit),
+        currentPage: pageNum,
+        totalPages: Math.ceil(total / limitNum),
         totalContacts: total,
-        hasNextPage: page * limit < total,
-        hasPrevPage: page > 1,
+        hasNextPage: pageNum * limitNum < total,
+        hasPrevPage: pageNum > 1,
       },
     });
   } catch (error) {
-    console.error("❌ Erreur récupération contacts:", error);
+    console.error("Erreur récupération contacts:", error);
     res.status(500).json({
       success: false,
       message: "Erreur interne du serveur",
@@ -105,10 +88,9 @@ const getAllContacts = async (req, res) => {
   }
 };
 
-// Récupérer un contact par ID
 const getContactById = async (req, res) => {
   try {
-    const contact = await Contact.findById(req.params.id).select("-__v");
+    const contact = await Contact.findById(req.params.id);
 
     if (!contact) {
       return res.status(404).json({
@@ -122,7 +104,7 @@ const getContactById = async (req, res) => {
       data: contact,
     });
   } catch (error) {
-    console.error("❌ Erreur récupération contact:", error);
+    console.error("Erreur récupération contact:", error);
     res.status(500).json({
       success: false,
       message: "Erreur interne du serveur",
@@ -130,16 +112,11 @@ const getContactById = async (req, res) => {
   }
 };
 
-// Mettre à jour le statut d'un contact
 const updateContactStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    const contact = await Contact.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true, runValidators: true }
-    ).select("-__v");
+    const contact = await Contact.updateStatus(req.params.id, status);
 
     if (!contact) {
       return res.status(404).json({
@@ -154,7 +131,7 @@ const updateContactStatus = async (req, res) => {
       data: contact,
     });
   } catch (error) {
-    console.error("❌ Erreur mise à jour contact:", error);
+    console.error("Erreur mise à jour contact:", error);
     res.status(500).json({
       success: false,
       message: "Erreur interne du serveur",

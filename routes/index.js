@@ -4,6 +4,7 @@ const router = express.Router();
 // Import des routes
 const contactRoutes = require("./contact");
 const demoRoutes = require("./demo");
+const authRoutes = require("./auth");
 
 // Route de test
 router.get("/test", (req, res) => {
@@ -36,5 +37,6 @@ router.get("/health", (req, res) => {
 // Routes API
 router.use("/contact", contactRoutes);
 router.use("/demo", demoRoutes);
+router.use("/auth", authRoutes);
 
 module.exports = router;

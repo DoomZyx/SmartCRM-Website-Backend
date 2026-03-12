@@ -9,7 +9,7 @@ const createDemo = async (req, res) => {
     const { name, email, company, teamSize, needs, preferredTime, duration } =
       req.body;
 
-    const demo = new Demo({
+    const demo = await Demo.create({
       name,
       email,
       company,
@@ -18,9 +18,7 @@ const createDemo = async (req, res) => {
       preferredTime,
       duration,
     });
-    await demo.save();
 
-    // Envoi des emails en parallèle
     Promise.all([
       sendDemoConfirmationEmail({
         name,
@@ -41,7 +39,7 @@ const createDemo = async (req, res) => {
         duration,
       }),
     ]).catch((error) => {
-      console.error("❌ Erreur envoi emails démo:", error);
+      console.error("Erreur envoi emails démo:", error);
     });
 
     res.status(201).json({
@@ -49,22 +47,19 @@ const createDemo = async (req, res) => {
       message:
         "Demande de démo envoyée avec succès ! Axel vous contactera rapidement pour fixer un rendez-vous.",
       data: {
-        id: demo._id,
+        id: demo.id,
         name: demo.name,
         email: demo.email,
         company: demo.company,
       },
     });
   } catch (error) {
-    console.error("❌ Erreur création démo:", error);
-    if (error.name === "ValidationError") {
+    console.error("Erreur création démo:", error);
+    if (error.code === "23502" || error.code === "23514") {
       return res.status(400).json({
         success: false,
         message: "Données invalides",
-        errors: Object.values(error.errors).map((err) => ({
-          field: err.path,
-          message: err.message,
-        })),
+        errors: [{ message: error.message }],
       });
     }
     res
@@ -75,10 +70,10 @@ const createDemo = async (req, res) => {
 
 const getAllDemos = async (req, res) => {
   try {
-    const demos = await Demo.find().sort({ createdAt: -1 });
+    const demos = await Demo.findAll();
     res.json({ success: true, data: demos });
   } catch (error) {
-    console.error("❌ Erreur récupération démos:", error);
+    console.error("Erreur récupération démos:", error);
     res
       .status(500)
       .json({ success: false, message: "Erreur interne du serveur" });
@@ -95,7 +90,7 @@ const getDemoById = async (req, res) => {
     }
     res.json({ success: true, data: demo });
   } catch (error) {
-    console.error("❌ Erreur récupération démo:", error);
+    console.error("Erreur récupération démo:", error);
     res
       .status(500)
       .json({ success: false, message: "Erreur interne du serveur" });

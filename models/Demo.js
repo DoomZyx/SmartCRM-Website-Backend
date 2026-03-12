@@ -1,48 +1,38 @@
-const mongoose = require('mongoose');
+const { getPool } = require("../utils/database");
+const { toCamelCase, mapRows } = require("../utils/rowMapper");
 
-const demoSchema = new mongoose.Schema({
-  name: { 
-    type: String, 
-    required: [true, 'Le nom est requis'], 
-    trim: true, 
-    maxlength: [100, 'Le nom ne peut pas dépasser 100 caractères'] 
-  },
-  email: { 
-    type: String, 
-    required: [true, 'L\'email est requis'], 
-    trim: true, 
-    lowercase: true, 
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Veuillez entrer un email valide'] 
-  },
-  company: { 
-    type: String, 
-    required: [true, 'Le nom de l\'entreprise est requis'], 
-    trim: true, 
-    maxlength: [100, 'Le nom de l\'entreprise ne peut pas dépasser 100 caractères'] 
-  },
-  teamSize: { 
-    type: String, 
-    required: [true, 'La taille de l\'équipe est requise'], 
-    enum: ['1-5', '6-10', '11-25', '26-50', '50+'] 
-  },
-  needs: { 
-    type: String, 
-    required: [true, 'Les besoins sont requis'], 
-    trim: true, 
-    maxlength: [500, 'Les besoins ne peuvent pas dépasser 500 caractères'] 
-  },
-  preferredTime: { 
-    type: String, 
-    required: [true, 'L\'horaire préféré est requis'], 
-    enum: ['Matin (9h-12h)', 'Après-midi (14h-17h)', 'Soirée (18h-20h)', 'Flexible'] 
-  },
-  duration: { 
-    type: String, 
-    required: [true, 'La durée souhaitée est requise'], 
-    enum: ['5 minutes', '10 minutes', '15 minutes'] 
-  }
-}, {
-  timestamps: true
-});
+async function create({ name, email, company, teamSize, needs, preferredTime, duration }) {
+  const pool = getPool();
+  const result = await pool.query(
+    `INSERT INTO demos (name, email, company, team_size, needs, preferred_time, duration)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING id, name, email, company, team_size AS "teamSize", needs, preferred_time AS "preferredTime", duration, created_at AS "createdAt"`,
+    [name, email, company, teamSize, needs, preferredTime, duration]
+  );
+  return toCamelCase(result.rows[0]);
+}
 
-module.exports = mongoose.model('Demo', demoSchema); 
+async function findAll() {
+  const pool = getPool();
+  const result = await pool.query(
+    `SELECT id, name, email, company, team_size AS "teamSize", needs, preferred_time AS "preferredTime", duration, created_at AS "createdAt"
+     FROM demos ORDER BY created_at DESC`
+  );
+  return mapRows(result.rows);
+}
+
+async function findById(id) {
+  const pool = getPool();
+  const result = await pool.query(
+    `SELECT id, name, email, company, team_size AS "teamSize", needs, preferred_time AS "preferredTime", duration, created_at AS "createdAt"
+     FROM demos WHERE id = $1`,
+    [id]
+  );
+  return result.rows[0] ? toCamelCase(result.rows[0]) : null;
+}
+
+module.exports = {
+  create,
+  findAll,
+  findById,
+};

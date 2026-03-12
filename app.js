@@ -1,9 +1,11 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
-// Import de la connexion MongoDB
-const connectDB = require("./utils/database");
+// Import de la connexion PostgreSQL
+const { connectDB } = require("./utils/database");
+const passport = require("./config/passport");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -11,20 +13,20 @@ const PORT = process.env.PORT || 3001;
 // Import des routes
 const apiRoutes = require("./routes");
 
-// Connexion à MongoDB
-connectDB();
-
-// Middleware CORS - Permet toutes les origines pour le développement
+// Middleware CORS - credentials: true pour envoi des cookies (JWT HTTP-only)
 app.use(
   cors({
-    origin: "https://www.mysmartcrm.fr",
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+    credentials: true,
+  }),
 );
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(passport.initialize());
 
 // Routes de base
 app.get("/", (req, res) => {
@@ -57,7 +59,10 @@ app.use("*", (req, res) => {
   res.status(404).json({ message: "Route non trouvée" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Serveur SmartCRM démarré sur le port ${PORT}`);
-  console.log(`API disponible sur https://smartcrm-website.onrender.com:${PORT}`);
-});
+(async () => {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`Serveur SmartCRM démarré sur le port ${PORT}`);
+    console.log(`API disponible sur https://smartcrm-website.onrender.com:${PORT}`);
+  });
+})();
