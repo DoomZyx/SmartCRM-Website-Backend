@@ -4,7 +4,10 @@ const { toCamelCase } = require("../utils/rowMapper");
 async function findById(id) {
   const pool = getPool();
   const result = await pool.query(
-    "SELECT id, email, name, google_id AS \"googleId\", avatar, created_at AS \"createdAt\", updated_at AS \"updatedAt\" FROM users WHERE id = $1",
+    `SELECT id, email, name, google_id AS "googleId", avatar, plan_id AS "planId",
+            stripe_subscription_id AS "stripeSubscriptionId",
+            created_at AS "createdAt", updated_at AS "updatedAt"
+     FROM users WHERE id = $1`,
     [id]
   );
   return result.rows[0] ? toCamelCase(result.rows[0]) : null;
@@ -39,9 +42,21 @@ async function updateGoogleLink(id, { googleId, avatar, name }) {
   return result.rows[0] ? toCamelCase(result.rows[0]) : null;
 }
 
+/**
+ * Met à jour l'abonnement utilisateur après un checkout Stripe réussi (webhook).
+ */
+async function updateSubscription(userId, { planId, stripeSubscriptionId }) {
+  const pool = getPool();
+  await pool.query(
+    `UPDATE users SET plan_id = $2, stripe_subscription_id = $3, updated_at = NOW() WHERE id = $1`,
+    [userId, planId ?? null, stripeSubscriptionId ?? null]
+  );
+}
+
 module.exports = {
   findById,
   findByEmailOrGoogleId,
   create,
   updateGoogleLink,
+  updateSubscription,
 };

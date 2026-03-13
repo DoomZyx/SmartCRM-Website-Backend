@@ -46,18 +46,21 @@ async function init() {
   for (const statement of statements) {
     await pool.query(statement + ";");
   }
-  const migrationPath = path.join(__dirname, "..", "db", "migrations", "001_restaurateur_profiles.sql");
-  if (fs.existsSync(migrationPath)) {
-    const migrationSql = fs.readFileSync(migrationPath, "utf8");
-    const migrationStatements = migrationSql
-      .split(";")
-      .map((s) => s.replace(/--[^\n]*/g, "").trim())
-      .filter((s) => s.length > 0);
-    for (const statement of migrationStatements) {
-      await pool.query(statement + ";");
+  const migrationsDir = path.join(__dirname, "..", "db", "migrations");
+  if (fs.existsSync(migrationsDir)) {
+    const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
+    for (const file of files) {
+      const migrationSql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
+      const migrationStatements = migrationSql
+        .split(";")
+        .map((s) => s.replace(/--[^\n]*/g, "").trim())
+        .filter((s) => s.length > 0);
+      for (const statement of migrationStatements) {
+        await pool.query(statement + ";");
+      }
     }
   }
-  console.log("Schéma PostgreSQL initialisé (users, contacts, demos, restaurateur_profiles).");
+  console.log("Schéma PostgreSQL initialisé (users, contacts, demos, restaurateur_profiles, migrations).");
   await pool.end();
 }
 

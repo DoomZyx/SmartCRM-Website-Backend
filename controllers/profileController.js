@@ -14,9 +14,11 @@ async function getProfile(req, res) {
   }
 }
 
+const PAYS_AUTORISES = ["France", "Luxembourg", "Belgique"];
+
 /**
  * PUT /api/auth/profile - Met à jour (ou crée) le profil restaurateur.
- * Body: nomEtablissement, adresse, codePostal, ville, telephone, email, nombreCouverts?, typeCuisine?
+ * Body: nomEtablissement, adresse, codePostal, ville, pays, telephone, email, nombreCouverts?, typeCuisine?
  */
 async function updateProfile(req, res) {
   try {
@@ -27,13 +29,20 @@ async function updateProfile(req, res) {
     const adresse = sanitizeString(body.adresse, 300);
     const codePostal = sanitizeString(body.codePostal, 10);
     const ville = sanitizeString(body.ville, 100);
+    const pays = sanitizeString(body.pays, 100);
     const telephone = sanitizeString(body.telephone, 30);
     const email = sanitizeString(body.email, 255);
     const typeCuisine = sanitizeString(body.typeCuisine, 100);
 
-    if (!nomEtablissement || !adresse || !codePostal || !ville || !telephone || !email) {
+    if (!nomEtablissement || !adresse || !codePostal || !ville || !pays || !telephone || !email) {
       return res.status(400).json({
-        message: "Champs obligatoires manquants : nomEtablissement, adresse, codePostal, ville, telephone, email",
+        message: "Champs obligatoires manquants : nomEtablissement, adresse, codePostal, ville, pays, telephone, email",
+      });
+    }
+
+    if (!PAYS_AUTORISES.includes(pays)) {
+      return res.status(400).json({
+        message: "Pays invalide. Valeurs acceptées : France, Luxembourg, Belgique",
       });
     }
 
@@ -49,6 +58,7 @@ async function updateProfile(req, res) {
       adresse,
       codePostal,
       ville,
+      pays,
       telephone,
       email,
       nombreCouverts,

@@ -50,6 +50,7 @@ async function getMe(req, res) {
       email: user.email,
       name: user.name,
       avatar: user.avatar,
+      planId: user.planId ?? null,
       createdAt: user.createdAt,
     });
   } catch (err) {

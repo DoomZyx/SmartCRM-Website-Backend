@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 3001;
 
 // Import des routes
 const apiRoutes = require("./routes");
+const { handleWebhook } = require("./controllers/checkoutController");
 
 // Middleware CORS - credentials: true pour envoi des cookies (JWT HTTP-only)
 app.use(
@@ -21,6 +22,13 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   }),
+);
+
+// Webhook Stripe : body brut pour vérification de la signature (avant express.json())
+app.post(
+  "/api/checkout/webhook",
+  express.raw({ type: "application/json" }),
+  (req, res, next) => handleWebhook(req, res, next)
 );
 
 app.use(express.json());
@@ -54,9 +62,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Route 404
+// Route 404 (méthode et URL pour débogage)
 app.use("*", (req, res) => {
-  res.status(404).json({ message: "Route non trouvée" });
+  res.status(404).json({
+    message: `Route ${req.method}:${req.originalUrl} not found`,
+    error: "Not Found",
+    statusCode: 404,
+  });
 });
 
 (async () => {

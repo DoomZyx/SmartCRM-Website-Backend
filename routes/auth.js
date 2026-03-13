@@ -10,6 +10,11 @@ const { getProfile, updateProfile } = require("../controllers/profileController"
 
 const router = express.Router();
 
+// Vérification que le routeur auth est bien monté (GET /api/auth)
+router.get("/", (req, res) => {
+  res.json({ message: "Auth router OK", endpoints: ["/google", "/google/callback", "/me", "/profile", "/logout"] });
+});
+
 // Redirection vers la page de consentement Google (pas de token exposé)
 router.get(
   "/google",

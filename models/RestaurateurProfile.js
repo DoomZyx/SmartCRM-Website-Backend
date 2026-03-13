@@ -8,7 +8,7 @@ async function findByUserId(userId) {
   const pool = getPool();
   const result = await pool.query(
     `SELECT user_id AS "userId", nom_etablissement AS "nomEtablissement",
-     adresse, code_postal AS "codePostal", ville, telephone, email,
+     adresse, code_postal AS "codePostal", ville, pays, telephone, email,
      nombre_couverts AS "nombreCouverts", type_cuisine AS "typeCuisine",
      created_at AS "createdAt", updated_at AS "updatedAt"
      FROM restaurateur_profiles WHERE user_id = $1`,
@@ -28,6 +28,7 @@ async function upsert(userId, data) {
     adresse,
     codePostal,
     ville,
+    pays,
     telephone,
     email,
     nombreCouverts,
@@ -36,14 +37,15 @@ async function upsert(userId, data) {
 
   const result = await pool.query(
     `INSERT INTO restaurateur_profiles (
-      user_id, nom_etablissement, adresse, code_postal, ville,
+      user_id, nom_etablissement, adresse, code_postal, ville, pays,
       telephone, email, nombre_couverts, type_cuisine, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
     ON CONFLICT (user_id) DO UPDATE SET
       nom_etablissement = EXCLUDED.nom_etablissement,
       adresse = EXCLUDED.adresse,
       code_postal = EXCLUDED.code_postal,
       ville = EXCLUDED.ville,
+      pays = EXCLUDED.pays,
       telephone = EXCLUDED.telephone,
       email = EXCLUDED.email,
       nombre_couverts = EXCLUDED.nombre_couverts,
@@ -55,6 +57,7 @@ async function upsert(userId, data) {
       adresse ?? null,
       codePostal ?? null,
       ville ?? null,
+      pays ?? null,
       telephone ?? null,
       email ?? null,
       nombreCouverts ? parseInt(nombreCouverts, 10) : null,
