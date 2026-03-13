@@ -75,6 +75,6 @@ app.use("*", (req, res) => {
   await connectDB();
   app.listen(PORT, () => {
     console.log(`Serveur SmartCRM démarré sur le port ${PORT}`);
-    console.log(`API disponible sur https://smartcrm-website.onrender.com:${PORT}`);
+    console.log(`API disponible sur https://api.mysmartfood.fr`);
   });
 })();
