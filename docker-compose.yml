@@ -23,7 +23,7 @@ services:
     depends_on:
       - reverse-proxy
     environment:
-      - DEFAULT_EMAIL=contact@mysmartfood.fr # à adapter
+      - DEFAULT_EMAIL=contact@mysmartfood.fr
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./docker/nginx/certs:/etc/nginx/certs:rw
@@ -34,33 +34,20 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     container_name: backend
     restart: unless-stopped
     env_file:
-      - ./backend/.env
+      - ./.env
     environment:
       - PORT=8080
       - NODE_ENV=production
       - VIRTUAL_HOST=api.mysmartfood.fr
       - LETSENCRYPT_HOST=api.mysmartfood.fr
-      - LETSENCRYPT_EMAIL=contact@mysmartfood.fr # même email que ci-dessus
+      - LETSENCRYPT_EMAIL=contact@mysmartfood.fr
     expose:
       - "8080"
-    networks:
-      - web
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: frontend
-    restart: unless-stopped
-    environment:
-      - VIRTUAL_HOST=mysmartfood.fr
-      - LETSENCRYPT_HOST=mysmartfood.fr
-      - LETSENCRYPT_EMAIL=contact@mysmartfood.fr
     networks:
       - web
 
