@@ -1,0 +1,69 @@
+version: "3.9"
+
+services:
+  reverse-proxy:
+    image: nginxproxy/nginx-proxy:latest
+    container_name: reverse-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:rw
+      - ./docker/nginx/vhost.d:/etc/nginx/vhost.d
+      - ./docker/nginx/html:/usr/share/nginx/html
+    networks:
+      - web
+
+  acme-companion:
+    image: nginxproxy/acme-companion:latest
+    container_name: acme-companion
+    restart: unless-stopped
+    depends_on:
+      - reverse-proxy
+    environment:
+      - DEFAULT_EMAIL=contact@mysmartfood.fr # à adapter
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:rw
+      - ./docker/nginx/vhost.d:/etc/nginx/vhost.d
+      - ./docker/nginx/html:/usr/share/nginx/html
+    networks:
+      - web
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - PORT=8080
+      - NODE_ENV=production
+      - VIRTUAL_HOST=api.mysmartfood.fr
+      - LETSENCRYPT_HOST=api.mysmartfood.fr
+      - LETSENCRYPT_EMAIL=contact@mysmartfood.fr # même email que ci-dessus
+    expose:
+      - "8080"
+    networks:
+      - web
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    environment:
+      - VIRTUAL_HOST=mysmartfood.fr
+      - LETSENCRYPT_HOST=mysmartfood.fr
+      - LETSENCRYPT_EMAIL=contact@mysmartfood.fr
+    networks:
+      - web
+
+networks:
+  web:
+    external: false
