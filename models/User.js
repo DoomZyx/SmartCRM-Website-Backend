@@ -1,5 +1,8 @@
+const bcrypt = require("bcryptjs");
 const { getPool } = require("../utils/database");
 const { toCamelCase } = require("../utils/rowMapper");
+
+const SALT_ROUNDS = 12;
 
 async function findById(id) {
   const pool = getPool();
@@ -12,6 +15,51 @@ async function findById(id) {
     [id]
   );
   return result.rows[0] ? toCamelCase(result.rows[0]) : null;
+}
+
+async function findByEmail(email) {
+  if (!email || typeof email !== "string") return null;
+  const pool = getPool();
+  const result = await pool.query(
+    `SELECT id, email, name, google_id AS "googleId", avatar, plan_id AS "planId",
+            stripe_subscription_id AS "stripeSubscriptionId",
+            smartcrm_instance_id AS "smartcrmInstanceId",
+            created_at AS "createdAt", updated_at AS "updatedAt"
+     FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM($1)) LIMIT 1`,
+    [email]
+  );
+  return result.rows[0] ? toCamelCase(result.rows[0]) : null;
+}
+
+/**
+ * Hash et enregistre le mot de passe pour l'utilisateur (requêtes paramétrées).
+ */
+async function setPassword(userId, plainPassword) {
+  if (!userId || !plainPassword || typeof plainPassword !== "string") return false;
+  const trimmed = plainPassword.trim();
+  if (trimmed.length < 8) return false;
+  const hash = await bcrypt.hash(trimmed, SALT_ROUNDS);
+  const pool = getPool();
+  await pool.query(
+    `UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1`,
+    [userId, hash]
+  );
+  return true;
+}
+
+/**
+ * Vérifie le mot de passe pour un utilisateur (compare au hash stocké).
+ */
+async function verifyPassword(userId, plainPassword) {
+  if (!userId || !plainPassword || typeof plainPassword !== "string") return false;
+  const pool = getPool();
+  const result = await pool.query(
+    `SELECT password_hash FROM users WHERE id = $1 AND password_hash IS NOT NULL`,
+    [userId]
+  );
+  const hash = result.rows[0]?.password_hash;
+  if (!hash) return false;
+  return bcrypt.compare(plainPassword.trim(), hash);
 }
 
 async function findByEmailOrGoogleId(email, googleId) {
@@ -86,10 +134,13 @@ async function getTenantApiKeyOnce(userId) {
 
 module.exports = {
   findById,
+  findByEmail,
   findByEmailOrGoogleId,
   create,
   updateGoogleLink,
   updateSubscription,
   updateSmartcrmInstance,
   getTenantApiKeyOnce,
+  setPassword,
+  verifyPassword,
 };
