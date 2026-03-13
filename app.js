@@ -17,11 +17,14 @@ const { handleWebhook } = require("./controllers/checkoutController");
 // Middleware CORS - credentials: true pour envoi des cookies (JWT HTTP-only)
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: [
+      "https://mysmartfood.fr",
+      "https://www.mysmartfood.fr"
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  }),
+  })
 );
 
 // Webhook Stripe : body brut pour vérification de la signature (avant express.json())
