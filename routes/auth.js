@@ -4,6 +4,7 @@ const { requireAuth } = require("../middleware/auth");
 const {
   googleCallback,
   getMe,
+  getTenantApiKey,
   logout,
 } = require("../controllers/authController");
 const { getProfile, updateProfile } = require("../controllers/profileController");
@@ -29,6 +30,9 @@ router.get("/google/callback", googleCallback);
 
 // Utilisateur courant (JWT lu depuis cookie ou Authorization, jamais renvoyé dans le body)
 router.get("/me", requireAuth, getMe);
+
+// Clé API tenant SmartCRM (une seule fois après création d'instance, puis supprimée côté serveur)
+router.get("/tenant-key", requireAuth, getTenantApiKey);
 
 // Profil restaurateur (données établissement)
 router.get("/profile", requireAuth, getProfile);

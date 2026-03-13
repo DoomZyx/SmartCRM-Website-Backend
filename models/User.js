@@ -6,6 +6,7 @@ async function findById(id) {
   const result = await pool.query(
     `SELECT id, email, name, google_id AS "googleId", avatar, plan_id AS "planId",
             stripe_subscription_id AS "stripeSubscriptionId",
+            smartcrm_instance_id AS "smartcrmInstanceId",
             created_at AS "createdAt", updated_at AS "updatedAt"
      FROM users WHERE id = $1`,
     [id]
@@ -53,10 +54,42 @@ async function updateSubscription(userId, { planId, stripeSubscriptionId }) {
   );
 }
 
+/**
+ * Enregistre l'instance SmartCRM créée après paiement (instanceId + apiKey à transmettre une fois).
+ */
+async function updateSmartcrmInstance(userId, { instanceId, apiKey }) {
+  const pool = getPool();
+  await pool.query(
+    `UPDATE users SET smartcrm_instance_id = $2, tenant_api_key = $3, updated_at = NOW() WHERE id = $1`,
+    [userId, instanceId ?? null, apiKey ?? null]
+  );
+}
+
+/**
+ * Retourne la clé API tenant une seule fois puis la supprime de la base (ne pas logger).
+ */
+async function getTenantApiKeyOnce(userId) {
+  const pool = getPool();
+  const select = await pool.query(
+    `SELECT tenant_api_key FROM users WHERE id = $1 AND tenant_api_key IS NOT NULL`,
+    [userId]
+  );
+  const apiKey = select.rows[0]?.tenant_api_key ?? null;
+  if (apiKey) {
+    await pool.query(
+      `UPDATE users SET tenant_api_key = NULL, updated_at = NOW() WHERE id = $1`,
+      [userId]
+    );
+  }
+  return apiKey;
+}
+
 module.exports = {
   findById,
   findByEmailOrGoogleId,
   create,
   updateGoogleLink,
   updateSubscription,
+  updateSmartcrmInstance,
+  getTenantApiKeyOnce,
 };

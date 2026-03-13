@@ -1,5 +1,6 @@
 const Stripe = require("stripe");
 const User = require("../models/User");
+const smartcrmApi = require("../services/smartcrmApi");
 
 const VALID_PLAN_IDS = [1, 2, 3, 4, 5];
 
@@ -59,6 +60,14 @@ async function createCheckoutSession(req, res) {
 
     const userId = req.user?.userId;
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const countryCode = req.body?.countryCode?.trim();
+    const metadata = {
+      userId: userId || "",
+      planId: String(planIdNum),
+    };
+    if (countryCode && ["FR", "BE", "LU"].includes(countryCode)) {
+      metadata.countryCode = countryCode;
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -73,10 +82,7 @@ async function createCheckoutSession(req, res) {
       locale: "fr",
       allow_promotion_codes: true,
       client_reference_id: userId || undefined,
-      metadata: {
-        userId: userId || "",
-        planId: String(planIdNum),
-      },
+      metadata,
     });
 
     if (!session.url) {
@@ -133,11 +139,40 @@ async function handleWebhook(req, res, next) {
     return res.status(200).send("OK");
   }
 
+  const userIdNum = Number(userId);
+
   try {
-    await User.updateSubscription(Number(userId), {
+    await User.updateSubscription(userIdNum, {
       planId,
       stripeSubscriptionId: subscriptionId,
     });
+
+    const user = await User.findById(userIdNum);
+    const planSlug = smartcrmApi.getPlanSlug(planId);
+    const name = (user?.name || user?.email || "Client").trim() || "Client";
+    const countryCode = session.metadata?.countryCode?.trim() || "FR";
+    const body = {
+      plan: planSlug,
+      name,
+      countryCode: ["FR", "BE", "LU"].includes(countryCode) ? countryCode : "FR",
+      clientId: String(userIdNum),
+    };
+
+    try {
+      const result = await smartcrmApi.createInstance(body);
+      if (result.instanceId) {
+        await User.updateSmartcrmInstance(userIdNum, {
+          instanceId: result.instanceId,
+          apiKey: result.apiKey,
+        });
+      }
+    } catch (apiErr) {
+      const status = apiErr.statusCode || 500;
+      if (status >= 500) {
+        console.error(`SmartCRM createInstance error status=${status} userId=${userIdNum}`);
+      }
+    }
+
     res.status(200).send("OK");
   } catch (err) {
     next(err);

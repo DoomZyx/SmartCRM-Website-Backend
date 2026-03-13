@@ -51,8 +51,28 @@ async function getMe(req, res) {
       name: user.name,
       avatar: user.avatar,
       planId: user.planId ?? null,
+      smartcrmInstanceId: user.smartcrmInstanceId ?? null,
       createdAt: user.createdAt,
     });
+  } catch (err) {
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+}
+
+/**
+ * Retourne la clé API tenant une seule fois (page de confirmation, etc.). Après lecture elle est supprimée côté serveur.
+ */
+async function getTenantApiKey(req, res) {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Non authentifié" });
+    }
+    const apiKey = await User.getTenantApiKeyOnce(Number(userId));
+    if (!apiKey) {
+      return res.status(404).json({ message: "Aucune clé API à récupérer" });
+    }
+    res.json({ apiKey });
   } catch (err) {
     res.status(500).json({ message: "Erreur serveur" });
   }
@@ -74,5 +94,6 @@ function logout(req, res) {
 module.exports = {
   googleCallback,
   getMe,
+  getTenantApiKey,
   logout,
 };
