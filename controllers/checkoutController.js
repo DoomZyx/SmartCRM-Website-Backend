@@ -1,6 +1,7 @@
 const Stripe = require("stripe");
 const User = require("../models/User");
 const smartcrmApi = require("../services/smartcrmApi");
+const { getPool } = require("../utils/database");
 
 const VALID_PLAN_IDS = [1, 2, 3, 4, 5];
 
@@ -123,10 +124,21 @@ async function handleWebhook(req, res, next) {
     const stripe = new Stripe(stripeSecretKey);
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    return res.status(400).send(`Signature webhook invalide: ${err.message}`);
+    // audit-fix: ne pas exposer err.message (détail signature)
+    return res.status(400).send("Signature webhook invalide");
   }
 
   if (event.type !== "checkout.session.completed") {
+    return res.status(200).send("OK");
+  }
+
+  // audit-fix: idempotence - ne pas retraiter un event déjà traité (retry Stripe)
+  const pool = getPool();
+  const insertResult = await pool.query(
+    `INSERT INTO stripe_webhook_events (event_id) VALUES ($1) ON CONFLICT (event_id) DO NOTHING RETURNING event_id`,
+    [event.id]
+  );
+  if (insertResult.rowCount === 0) {
     return res.status(200).send("OK");
   }
 
@@ -148,6 +160,11 @@ async function handleWebhook(req, res, next) {
     });
 
     const user = await User.findById(userIdNum);
+    // audit-fix: idempotence - ne pas recréer d'instance si l'user en a déjà une
+    if (user?.smartcrmInstanceId) {
+      return res.status(200).send("OK");
+    }
+
     const planSlug = smartcrmApi.getPlanSlug(planId);
     const name = (user?.name || user?.email || "Client").trim() || "Client";
     const countryCode = session.metadata?.countryCode?.trim() || "FR";
@@ -156,15 +173,21 @@ async function handleWebhook(req, res, next) {
       name,
       countryCode: ["FR", "BE", "LU"].includes(countryCode) ? countryCode : "FR",
       clientId: String(userIdNum),
+      provisionOpenAi: true,
+      provisionTwilio: true,
+      email: user?.email || null,
+      username: name,
     };
 
     try {
       const result = await smartcrmApi.createInstance(body);
-      if (result.instanceId) {
+      if (result.instanceId && result.apiKey) {
         await User.updateSmartcrmInstance(userIdNum, {
           instanceId: result.instanceId,
           apiKey: result.apiKey,
         });
+      } else if (result.instanceId && !result.apiKey) {
+        console.error("createInstance: instance créée mais apiKey manquante dans la réponse, userId=" + userIdNum);
       }
     } catch (apiErr) {
       const status = apiErr.statusCode || 500;

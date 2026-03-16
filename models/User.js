@@ -115,6 +115,7 @@ async function updateSmartcrmInstance(userId, { instanceId, apiKey }) {
 
 /**
  * Retourne la clé API tenant une seule fois puis la supprime de la base (ne pas logger).
+ * Note: on ne supprime plus la clé après lecture pour permettre l'accès à l'app intégrée via le proxy.
  */
 async function getTenantApiKeyOnce(userId) {
   const pool = getPool();
@@ -122,14 +123,20 @@ async function getTenantApiKeyOnce(userId) {
     `SELECT tenant_api_key FROM users WHERE id = $1 AND tenant_api_key IS NOT NULL`,
     [userId]
   );
-  const apiKey = select.rows[0]?.tenant_api_key ?? null;
-  if (apiKey) {
-    await pool.query(
-      `UPDATE users SET tenant_api_key = NULL, updated_at = NOW() WHERE id = $1`,
-      [userId]
-    );
-  }
-  return apiKey;
+  return select.rows[0]?.tenant_api_key ?? null;
+}
+
+/**
+ * Retourne la clé API tenant pour l'utilisateur (usage backend uniquement, ex. proxy app).
+ * Ne pas logger cette valeur.
+ */
+async function getTenantApiKey(userId) {
+  const pool = getPool();
+  const result = await pool.query(
+    `SELECT tenant_api_key FROM users WHERE id = $1 AND tenant_api_key IS NOT NULL`,
+    [userId]
+  );
+  return result.rows[0]?.tenant_api_key ?? null;
 }
 
 module.exports = {
@@ -141,6 +148,7 @@ module.exports = {
   updateSubscription,
   updateSmartcrmInstance,
   getTenantApiKeyOnce,
+  getTenantApiKey,
   setPassword,
   verifyPassword,
 };

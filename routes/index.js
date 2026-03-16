@@ -6,6 +6,7 @@ const contactRoutes = require("./contact");
 const demoRoutes = require("./demo");
 const authRoutes = require("./auth");
 const checkoutRoutes = require("./checkout");
+const appProxyRoutes = require("./appProxy");
 
 // Route de test
 router.get("/test", (req, res) => {
@@ -40,5 +41,6 @@ router.use("/contact", contactRoutes);
 router.use("/demo", demoRoutes);
 router.use("/auth", authRoutes);
 router.use("/checkout", checkoutRoutes);
+router.use("/app-proxy", appProxyRoutes);
 
 module.exports = router;

@@ -30,16 +30,23 @@ function getPlanSlug(planId) {
  * @throws {Error} avec statusCode (400, 401, 409, 500, 502) et message selon la réponse API
  */
 async function createInstance(body) {
-  const baseUrl = process.env.SMARTCRM_API_BASE_URL;
+  let baseUrl = process.env.SMARTCRM_API_BASE_URL;
   const serverApiKey = process.env.SMARTCRM_SERVER_API_KEY;
 
   if (!baseUrl || !serverApiKey) {
+    console.error("createInstance: config manquante - SMARTCRM_API_BASE_URL=" + (baseUrl ? "set" : "VIDE") + ", SMARTCRM_SERVER_API_KEY=" + (serverApiKey ? "set" : "VIDE"));
     const err = new Error("SmartCRM API non configurée (SMARTCRM_API_BASE_URL / SMARTCRM_SERVER_API_KEY)");
     err.statusCode = 503;
     throw err;
   }
 
+  baseUrl = String(baseUrl).trim();
+  if (!/^https?:\/\//i.test(baseUrl)) {
+    const port = baseUrl.replace(/\D/g, "") || "8081";
+    baseUrl = `http://localhost:${port}`;
+  }
   const url = `${baseUrl.replace(/\/$/, "")}/api/instances`;
+  try {
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -71,10 +78,18 @@ async function createInstance(body) {
     return data || {};
   }
 
+  console.error("createInstance: app a répondu " + response.status + " - " + (data ? JSON.stringify(data) : "pas de body"));
   const err = new Error(data?.message || data?.error || `SmartCRM API ${response.status}`);
   err.statusCode = response.status;
   err.responseBody = data;
   throw err;
+  } catch (fetchErr) {
+    if (fetchErr.statusCode) throw fetchErr;
+    console.error("createInstance: fetch failed -", fetchErr.message);
+    const err = new Error("Impossible de joindre l'app SmartCRM: " + fetchErr.message);
+    err.statusCode = 503;
+    throw err;
+  }
 }
 
 module.exports = {

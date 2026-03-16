@@ -74,6 +74,8 @@ async function login(req, res) {
       },
     });
   } catch (err) {
+    // audit-fix: logger avant réponse 500
+    console.error("login error:", err);
     res.status(500).json({ message: "Erreur serveur." });
   }
 }
@@ -127,6 +129,7 @@ async function register(req, res) {
       },
     });
   } catch (err) {
+    console.error("register error:", err);
     res.status(500).json({ message: "Erreur serveur." });
   }
 }
@@ -156,6 +159,7 @@ async function setPassword(req, res) {
     }
     res.status(204).send();
   } catch (err) {
+    console.error("setPassword error:", err);
     res.status(500).json({ message: "Erreur serveur." });
   }
 }
@@ -178,14 +182,16 @@ async function getMe(req, res) {
       planId: user.planId ?? null,
       smartcrmInstanceId: user.smartcrmInstanceId ?? null,
       createdAt: user.createdAt,
+      appRole: user.smartcrmInstanceId ? "admin" : "user",
     });
   } catch (err) {
+    console.error("getMe error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 }
 
 /**
- * Retourne la clé API tenant une seule fois (page de confirmation, etc.). Après lecture elle est supprimée côté serveur.
+ * Retourne la clé API tenant pour l'utilisateur (persistante, pour accès à l'app depuis Mon Espace).
  */
 async function getTenantApiKey(req, res) {
   try {
@@ -193,12 +199,13 @@ async function getTenantApiKey(req, res) {
     if (!userId) {
       return res.status(401).json({ message: "Non authentifié" });
     }
-    const apiKey = await User.getTenantApiKeyOnce(Number(userId));
+    const apiKey = await User.getTenantApiKey(Number(userId));
     if (!apiKey) {
       return res.status(404).json({ message: "Aucune clé API à récupérer" });
     }
     res.json({ apiKey });
   } catch (err) {
+    console.error("getTenantApiKey error:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 }

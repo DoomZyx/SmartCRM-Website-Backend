@@ -1,7 +1,9 @@
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-require("dotenv").config();
+// Charger .env depuis le dossier backend (même si on lance depuis la racine du projet)
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 // Import de la connexion PostgreSQL
 const { connectDB } = require("./utils/database");
@@ -9,6 +11,16 @@ const passport = require("./config/passport");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// audit-fix: headers de sécurité (X-Frame-Options, X-Content-Type-Options, HSTS en prod)
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  next();
+});
 
 // Import des routes
 const apiRoutes = require("./routes");
@@ -19,7 +31,9 @@ app.use(
   cors({
     origin: [
       "https://mysmartfood.fr",
-      "https://www.mysmartfood.fr"
+      "https://www.mysmartfood.fr",
+      "http://localhost:5173",
+      "http://localhost:5174",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -75,6 +89,10 @@ app.use("*", (req, res) => {
 });
 
 (async () => {
+  // audit-fix: preflight des variables critiques avant démarrage
+  const { runPreflight } = require("./scripts/preflight");
+  runPreflight();
+
   await connectDB();
   app.listen(PORT, () => {
     console.log(`Serveur SmartCRM démarré sur le port ${PORT}`);
