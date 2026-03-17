@@ -139,6 +139,20 @@ async function getTenantApiKey(userId) {
   return result.rows[0]?.tenant_api_key ?? null;
 }
 
+/**
+ * Trouve un utilisateur par l'instance SmartCRM associée (pour notification numéro définitif).
+ */
+async function findBySmartcrmInstanceId(instanceId) {
+  if (!instanceId || typeof instanceId !== "string" || !instanceId.trim()) return null;
+  const pool = getPool();
+  const result = await pool.query(
+    `SELECT id, email, name, smartcrm_instance_id AS "smartcrmInstanceId"
+     FROM users WHERE smartcrm_instance_id = $1 LIMIT 1`,
+    [instanceId.trim()]
+  );
+  return result.rows[0] ? toCamelCase(result.rows[0]) : null;
+}
+
 module.exports = {
   findById,
   findByEmail,
@@ -151,4 +165,5 @@ module.exports = {
   getTenantApiKey,
   setPassword,
   verifyPassword,
+  findBySmartcrmInstanceId,
 };

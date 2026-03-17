@@ -7,6 +7,7 @@ const demoRoutes = require("./demo");
 const authRoutes = require("./auth");
 const checkoutRoutes = require("./checkout");
 const appProxyRoutes = require("./appProxy");
+const internalRoutes = require("./internal");
 
 // Route de test
 router.get("/test", (req, res) => {
@@ -64,5 +65,6 @@ router.use("/demo", demoRoutes);
 router.use("/auth", authRoutes);
 router.use("/checkout", checkoutRoutes);
 router.use("/app-proxy", appProxyRoutes);
+router.use("/internal", internalRoutes);
 
 module.exports = router;

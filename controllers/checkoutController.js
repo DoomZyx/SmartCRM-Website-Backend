@@ -1,6 +1,5 @@
 const Stripe = require("stripe");
 const User = require("../models/User");
-const smartcrmApi = require("../services/smartcrmApi");
 const { getPool } = require("../utils/database");
 const { logger } = require("../utils/logger");
 
@@ -159,45 +158,7 @@ async function handleWebhook(req, res, next) {
       planId,
       stripeSubscriptionId: subscriptionId,
     });
-
-    const user = await User.findById(userIdNum);
-    // audit-fix: idempotence - ne pas recréer d'instance si l'user en a déjà une
-    if (user?.smartcrmInstanceId) {
-      return res.status(200).send("OK");
-    }
-
-    const planSlug = smartcrmApi.getPlanSlug(planId);
-    const name = (user?.name || user?.email || "Client").trim() || "Client";
-    const countryCode = session.metadata?.countryCode?.trim() || "FR";
-    const body = {
-      plan: planSlug,
-      name,
-      countryCode: ["FR", "BE", "LU"].includes(countryCode) ? countryCode : "FR",
-      clientId: String(userIdNum),
-      provisionOpenAi: true,
-      provisionTwilio: true,
-      provisionTwilioSubaccount: true,
-      email: user?.email || null,
-      username: name,
-    };
-
-    try {
-      const result = await smartcrmApi.createInstance(body);
-      if (result.instanceId && result.apiKey) {
-        await User.updateSmartcrmInstance(userIdNum, {
-          instanceId: result.instanceId,
-          apiKey: result.apiKey,
-        });
-      } else if (result.instanceId && !result.apiKey) {
-        logger.warn({ userId: userIdNum }, "createInstance: instance créée mais apiKey manquante dans la réponse");
-      }
-    } catch (apiErr) {
-      const status = apiErr.statusCode || 500;
-      if (status >= 500) {
-        logger.error({ err: apiErr.message, status, userId: userIdNum }, "SmartCRM createInstance error");
-      }
-    }
-
+    // L'instance est créée après que l'utilisateur ait rempli la modale (infos restaurant) sur Mon espace.
     res.status(200).send("OK");
   } catch (err) {
     next(err);
