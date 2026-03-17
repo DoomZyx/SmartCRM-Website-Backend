@@ -3,6 +3,7 @@ const {
   sendConfirmationEmail,
   sendNotificationEmail,
 } = require("../utils/emailService");
+const { child: logChild } = require("../utils/logger");
 
 const createContact = async (req, res) => {
   try {
@@ -26,7 +27,7 @@ const createContact = async (req, res) => {
         message,
       }),
     ]).catch((error) => {
-      console.error("Erreur envoi emails:", error);
+      logChild(req?.id).error({ err: error.message }, "Erreur envoi emails contact");
     });
 
     res.status(201).json({
@@ -41,7 +42,7 @@ const createContact = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Erreur création contact:", error);
+    logChild(req?.id).error({ err: error.message }, "Erreur création contact");
     if (error.code === "23502" || error.code === "23514") {
       return res.status(400).json({
         success: false,
@@ -80,7 +81,7 @@ const getAllContacts = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Erreur récupération contacts:", error);
+    logChild(req?.id).error({ err: error.message }, "Erreur récupération contacts");
     res.status(500).json({
       success: false,
       message: "Erreur interne du serveur",
@@ -104,7 +105,7 @@ const getContactById = async (req, res) => {
       data: contact,
     });
   } catch (error) {
-    console.error("Erreur récupération contact:", error);
+    logChild(req?.id).error({ err: error.message }, "Erreur récupération contact");
     res.status(500).json({
       success: false,
       message: "Erreur interne du serveur",
@@ -131,7 +132,7 @@ const updateContactStatus = async (req, res) => {
       data: contact,
     });
   } catch (error) {
-    console.error("Erreur mise à jour contact:", error);
+    logChild(req?.id).error({ err: error.message }, "Erreur mise à jour contact");
     res.status(500).json({
       success: false,
       message: "Erreur interne du serveur",

@@ -1,4 +1,7 @@
 const RestaurateurProfile = require("../models/RestaurateurProfile");
+const User = require("../models/User");
+const smartcrmApi = require("../services/smartcrmApi");
+const { child: logChild } = require("../utils/logger");
 
 /**
  * GET /api/auth/profile - Retourne le profil restaurateur de l'utilisateur connecté.
@@ -9,7 +12,7 @@ async function getProfile(req, res) {
     const profile = await RestaurateurProfile.findByUserId(userId);
     res.json(profile || {});
   } catch (err) {
-    console.error("GET /api/auth/profile:", err.message || err);
+    logChild(req?.id).error({ err: err.message }, "GET /api/auth/profile");
     res.status(500).json({ message: "Erreur serveur" });
   }
 }
@@ -64,9 +67,24 @@ async function updateProfile(req, res) {
       nombreCouverts,
       typeCuisine,
     });
+
+    const tenantApiKey = await User.getTenantApiKey(userId);
+    if (tenantApiKey) {
+      const adresseFull = [adresse, codePostal, ville, pays].filter(Boolean).join(", ");
+      smartcrmApi
+        .syncRestaurantInfoToInstance(tenantApiKey, {
+          nom: nomEtablissement,
+          adresse: adresseFull,
+          telephone: telephone || "",
+          email: email || "",
+          nombreCouverts: nombreCouverts != null ? nombreCouverts : 0,
+        })
+        .catch(() => {});
+    }
+
     res.json(profile);
   } catch (err) {
-    console.error("PUT /api/auth/profile:", err.message || err);
+    logChild(req?.id).error({ err: err.message }, "PUT /api/auth/profile");
     res.status(500).json({ message: "Erreur serveur" });
   }
 }

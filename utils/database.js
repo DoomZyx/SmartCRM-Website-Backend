@@ -1,5 +1,6 @@
 const { Pool } = require("pg");
 const dotenv = require("dotenv");
+const { logger } = require("./logger");
 
 dotenv.config();
 
@@ -56,9 +57,9 @@ const connectDB = async () => {
     const client = await pool.connect();
     await client.query("SELECT 1");
     client.release();
-    console.log("PostgreSQL connecté (pool unique, max 20 connexions).");
+    logger.info("PostgreSQL connecté (pool unique, max 20 connexions).");
   } catch (error) {
-    console.error("Erreur de connexion PostgreSQL:", error.message);
+    logger.error({ err: error.message }, "Erreur de connexion PostgreSQL");
     process.exit(1);
   }
   return pool;

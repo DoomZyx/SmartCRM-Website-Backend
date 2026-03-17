@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const { signToken, JWT_COOKIE_NAME } = require("../utils/jwt");
+const { child: logChild } = require("../utils/logger");
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://www.mysmartcrm.fr";
 const isProduction = process.env.NODE_ENV === "production";
@@ -74,8 +75,7 @@ async function login(req, res) {
       },
     });
   } catch (err) {
-    // audit-fix: logger avant réponse 500
-    console.error("login error:", err);
+    logChild(req?.id).error({ err: err.message }, "login error");
     res.status(500).json({ message: "Erreur serveur." });
   }
 }
@@ -129,7 +129,7 @@ async function register(req, res) {
       },
     });
   } catch (err) {
-    console.error("register error:", err);
+    logChild(req?.id).error({ err: err.message }, "register error");
     res.status(500).json({ message: "Erreur serveur." });
   }
 }
@@ -159,7 +159,7 @@ async function setPassword(req, res) {
     }
     res.status(204).send();
   } catch (err) {
-    console.error("setPassword error:", err);
+    logChild(req?.id).error({ err: err.message }, "setPassword error");
     res.status(500).json({ message: "Erreur serveur." });
   }
 }
@@ -185,7 +185,7 @@ async function getMe(req, res) {
       appRole: user.smartcrmInstanceId ? "admin" : "user",
     });
   } catch (err) {
-    console.error("getMe error:", err);
+    logChild(req?.id).error({ err: err.message }, "getMe error");
     res.status(500).json({ message: "Erreur serveur" });
   }
 }
@@ -205,7 +205,7 @@ async function getTenantApiKey(req, res) {
     }
     res.json({ apiKey });
   } catch (err) {
-    console.error("getTenantApiKey error:", err);
+    logChild(req?.id).error({ err: err.message }, "getTenantApiKey error");
     res.status(500).json({ message: "Erreur serveur" });
   }
 }

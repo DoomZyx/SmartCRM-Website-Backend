@@ -3,6 +3,7 @@ const {
   sendDemoConfirmationEmail,
   sendDemoNotificationEmail,
 } = require("../utils/emailService");
+const { child: logChild } = require("../utils/logger");
 
 const createDemo = async (req, res) => {
   try {
@@ -39,7 +40,7 @@ const createDemo = async (req, res) => {
         duration,
       }),
     ]).catch((error) => {
-      console.error("Erreur envoi emails démo:", error);
+      logChild(req?.id).error({ err: error.message }, "Erreur envoi emails démo");
     });
 
     res.status(201).json({
@@ -54,7 +55,7 @@ const createDemo = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Erreur création démo:", error);
+    logChild(req?.id).error({ err: error.message }, "Erreur création démo");
     if (error.code === "23502" || error.code === "23514") {
       return res.status(400).json({
         success: false,
@@ -73,7 +74,7 @@ const getAllDemos = async (req, res) => {
     const demos = await Demo.findAll();
     res.json({ success: true, data: demos });
   } catch (error) {
-    console.error("Erreur récupération démos:", error);
+    logChild(req?.id).error({ err: error.message }, "Erreur récupération démos");
     res
       .status(500)
       .json({ success: false, message: "Erreur interne du serveur" });
@@ -90,7 +91,7 @@ const getDemoById = async (req, res) => {
     }
     res.json({ success: true, data: demo });
   } catch (error) {
-    console.error("Erreur récupération démo:", error);
+    logChild(req?.id).error({ err: error.message }, "Erreur récupération démo");
     res
       .status(500)
       .json({ success: false, message: "Erreur interne du serveur" });

@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
+const { logger } = require("./logger");
 
 dotenv.config();
 
@@ -56,10 +57,10 @@ const sendConfirmationEmail = async (contactData) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("Email de confirmation envoyé à:", contactData.email);
+    logger.info({ to: contactData.email }, "Email de confirmation envoyé");
     return true;
   } catch (error) {
-    console.error("Erreur envoi email confirmation:", error);
+    logger.error({ err: error.message }, "Erreur envoi email confirmation");
     return false;
   }
 };
@@ -103,10 +104,10 @@ const sendNotificationEmail = async (contactData) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("Email de notification envoyé à l'équipe");
+    logger.info("Email de notification envoyé à l'équipe");
     return true;
   } catch (error) {
-    console.error("Erreur envoi email notification:", error);
+    logger.error({ err: error.message }, "Erreur envoi email notification");
     return false;
   }
 };
@@ -149,10 +150,10 @@ const sendDemoConfirmationEmail = async (demoData) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("Email de confirmation démo envoyé à:", demoData.email);
+    logger.info({ to: demoData.email }, "Email de confirmation démo envoyé");
     return true;
   } catch (error) {
-    console.error("Erreur envoi email confirmation démo:", error);
+    logger.error({ err: error.message }, "Erreur envoi email confirmation démo");
     return false;
   }
 };
@@ -199,10 +200,10 @@ const sendDemoNotificationEmail = async (demoData) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("Email de notification démo envoyé à l'équipe");
+    logger.info("Email de notification démo envoyé à l'équipe");
     return true;
   } catch (error) {
-    console.error("Erreur envoi email notification démo:", error);
+    logger.error({ err: error.message }, "Erreur envoi email notification démo");
     return false;
   }
 };

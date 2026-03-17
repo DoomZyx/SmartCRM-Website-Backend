@@ -6,6 +6,7 @@
 const express = require("express");
 const { requireAuth } = require("../middleware/auth");
 const User = require("../models/User");
+const { child: logChild } = require("../utils/logger");
 
 const router = express.Router();
 
@@ -89,7 +90,7 @@ async function proxyRequest(req, res) {
       res.send(data);
     }
   } catch (err) {
-    console.error("App proxy error:", err.message);
+    logChild(req?.id).error({ err: err.message }, "App proxy error");
     res.status(502).json({
       message: "Erreur lors de l'accès à l'application. Réessayez plus tard.",
     });

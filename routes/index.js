@@ -27,12 +27,34 @@ router.get("/ping", (req, res) => {
   });
 });
 
-// Route de santé du serveur
-router.get("/health", (req, res) => {
+// Route de santé du serveur (vérifie PostgreSQL ; 503 si DB indisponible)
+router.get("/health", async (req, res) => {
+  const { getPool } = require("../utils/database");
+  const { logger } = require("../utils/logger");
+  let dbStatus = "error";
+  try {
+    const pool = getPool();
+    await pool.query("SELECT 1");
+    dbStatus = "ok";
+  } catch (err) {
+    logger.error({ err: err.message }, "Health check: PostgreSQL indisponible");
+  }
+  const ok = dbStatus === "ok";
+  if (!ok) {
+    return res.status(503).json({
+      status: "degraded",
+      message: "Serveur en dégradation",
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      db: dbStatus,
+    });
+  }
   res.json({
+    status: "ok",
     message: "Serveur en bonne santé",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
+    db: dbStatus,
   });
 });
 

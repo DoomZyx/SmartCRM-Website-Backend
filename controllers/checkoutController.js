@@ -2,6 +2,7 @@ const Stripe = require("stripe");
 const User = require("../models/User");
 const smartcrmApi = require("../services/smartcrmApi");
 const { getPool } = require("../utils/database");
+const { logger } = require("../utils/logger");
 
 const VALID_PLAN_IDS = [1, 2, 3, 4, 5];
 
@@ -175,6 +176,7 @@ async function handleWebhook(req, res, next) {
       clientId: String(userIdNum),
       provisionOpenAi: true,
       provisionTwilio: true,
+      provisionTwilioSubaccount: true,
       email: user?.email || null,
       username: name,
     };
@@ -187,12 +189,12 @@ async function handleWebhook(req, res, next) {
           apiKey: result.apiKey,
         });
       } else if (result.instanceId && !result.apiKey) {
-        console.error("createInstance: instance créée mais apiKey manquante dans la réponse, userId=" + userIdNum);
+        logger.warn({ userId: userIdNum }, "createInstance: instance créée mais apiKey manquante dans la réponse");
       }
     } catch (apiErr) {
       const status = apiErr.statusCode || 500;
       if (status >= 500) {
-        console.error(`SmartCRM createInstance error status=${status} userId=${userIdNum}`);
+        logger.error({ err: apiErr.message, status, userId: userIdNum }, "SmartCRM createInstance error");
       }
     }
 

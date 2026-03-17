@@ -8,6 +8,8 @@ require("dotenv").config({ path: path.join(__dirname, ".env") });
 // Import de la connexion PostgreSQL
 const { connectDB } = require("./utils/database");
 const passport = require("./config/passport");
+const { logger, child: loggerChild } = require("./utils/logger");
+const { requestIdMiddleware } = require("./middleware/requestId");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,6 +21,13 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === "production") {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }
+  next();
+});
+
+// Corrélation requête (requestId) et début de requête pour calcul de la durée
+app.use(requestIdMiddleware);
+app.use((req, res, next) => {
+  req._startTime = Date.now();
   next();
 });
 
@@ -70,9 +79,22 @@ app.get("/ping", (req, res) => {
 // Routes API
 app.use("/api", apiRoutes);
 
-// Gestion des erreurs
+// Gestion des erreurs (log structuré avec requestId, method, url, statusCode, duration)
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  const requestId = req.id;
+  const duration = req._startTime != null ? Date.now() - req._startTime : undefined;
+  const log = loggerChild(requestId);
+  log.error(
+    {
+      method: req.method,
+      url: req.originalUrl || req.url,
+      statusCode: 500,
+      duration,
+      err: err.message,
+      stack: err.stack,
+    },
+    "Erreur interne du serveur"
+  );
   res.status(500).json({
     message: "Erreur interne du serveur",
     error: process.env.NODE_ENV === "development" ? err.message : {},
@@ -95,7 +117,6 @@ app.use("*", (req, res) => {
 
   await connectDB();
   app.listen(PORT, () => {
-    console.log(`Serveur SmartCRM démarré sur le port ${PORT}`);
-    console.log(`API disponible sur https://api.mysmartfood.fr`);
+    logger.info({ port: PORT }, "Serveur SmartCRM démarré");
   });
 })();
