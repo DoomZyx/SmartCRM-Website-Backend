@@ -10,6 +10,7 @@ async function findById(id) {
     `SELECT id, email, name, google_id AS "googleId", avatar, plan_id AS "planId",
             stripe_subscription_id AS "stripeSubscriptionId",
             smartcrm_instance_id AS "smartcrmInstanceId",
+            twilio_docs_submitted_at AS "twilioDocsSubmittedAt",
             created_at AS "createdAt", updated_at AS "updatedAt"
      FROM users WHERE id = $1`,
     [id]
@@ -24,6 +25,7 @@ async function findByEmail(email) {
     `SELECT id, email, name, google_id AS "googleId", avatar, plan_id AS "planId",
             stripe_subscription_id AS "stripeSubscriptionId",
             smartcrm_instance_id AS "smartcrmInstanceId",
+            twilio_docs_submitted_at AS "twilioDocsSubmittedAt",
             created_at AS "createdAt", updated_at AS "updatedAt"
      FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM($1)) LIMIT 1`,
     [email]
@@ -103,6 +105,17 @@ async function updateSubscription(userId, { planId, stripeSubscriptionId }) {
 }
 
 /**
+ * Marque la date de réception du dossier Twilio (Mon espace, sans création d'instance auto).
+ */
+async function markTwilioDocsSubmitted(userId) {
+  const pool = getPool();
+  await pool.query(
+    `UPDATE users SET twilio_docs_submitted_at = NOW(), updated_at = NOW() WHERE id = $1`,
+    [userId]
+  );
+}
+
+/**
  * Enregistre l'instance SmartCRM créée après paiement (instanceId + apiKey à transmettre une fois).
  */
 async function updateSmartcrmInstance(userId, { instanceId, apiKey }) {
@@ -160,6 +173,7 @@ module.exports = {
   create,
   updateGoogleLink,
   updateSubscription,
+  markTwilioDocsSubmitted,
   updateSmartcrmInstance,
   getTenantApiKeyOnce,
   getTenantApiKey,

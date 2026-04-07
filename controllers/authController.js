@@ -2,7 +2,7 @@ const User = require("../models/User");
 const { signToken, JWT_COOKIE_NAME } = require("../utils/jwt");
 const { child: logChild } = require("../utils/logger");
 
-const FRONTEND_URL = process.env.FRONTEND_URL || "https://www.mysmartcrm.fr";
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://www.mysmartfood.fr";
 const isProduction = process.env.NODE_ENV === "production";
 
 /**
@@ -71,6 +71,7 @@ async function login(req, res) {
         avatar: user.avatar,
         planId: user.planId ?? null,
         smartcrmInstanceId: user.smartcrmInstanceId ?? null,
+        twilioDocsSubmittedAt: user.twilioDocsSubmittedAt ?? null,
         createdAt: user.createdAt,
       },
     });
@@ -125,6 +126,7 @@ async function register(req, res) {
         avatar: user.avatar,
         planId: user.planId ?? null,
         smartcrmInstanceId: user.smartcrmInstanceId ?? null,
+        twilioDocsSubmittedAt: user.twilioDocsSubmittedAt ?? null,
         createdAt: user.createdAt,
       },
     });
@@ -181,6 +183,7 @@ async function getMe(req, res) {
       avatar: user.avatar,
       planId: user.planId ?? null,
       smartcrmInstanceId: user.smartcrmInstanceId ?? null,
+      twilioDocsSubmittedAt: user.twilioDocsSubmittedAt ?? null,
       createdAt: user.createdAt,
       appRole: user.smartcrmInstanceId ? "admin" : "user",
     });

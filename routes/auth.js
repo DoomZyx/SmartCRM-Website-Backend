@@ -10,7 +10,7 @@ const {
   getTenantApiKey,
   logout,
 } = require("../controllers/authController");
-const { getProfile, updateProfile, completeProfileAndProvision } = require("../controllers/profileController");
+const { getProfile, updateProfile, submitOnboardingDossier } = require("../controllers/profileController");
 const { uploadRegulatoryDocs } = require("../middleware/uploadRegulatoryDocs");
 
 const router = express.Router();
@@ -50,11 +50,8 @@ router.get("/tenant-key", requireAuth, getTenantApiKey);
 // Profil restaurateur (données établissement)
 router.get("/profile", requireAuth, getProfile);
 router.put("/profile", requireAuth, updateProfile);
-// Création d'instance après paiement (modale infos restaurant). Accepte JSON ou multipart (idDocument, addressDocument).
-router.post("/profile/provision-instance", requireAuth, (req, res, next) => {
-  if (req.is("multipart/form-data")) return uploadRegulatoryDocs(req, res, next);
-  next();
-}, completeProfileAndProvision);
+// Dossier Twilio + coordonnées (multipart : kbisDocument, idDocumentRecto, idDocumentVerso, addressDocument + champs texte). Pas de création d'instance auto.
+router.post("/profile/submit-onboarding", requireAuth, uploadRegulatoryDocs, submitOnboardingDossier);
 
 // Déconnexion : suppression du cookie
 router.post("/logout", logout);

@@ -10,6 +10,7 @@ async function findByUserId(userId) {
     `SELECT user_id AS "userId", nom_etablissement AS "nomEtablissement",
      adresse, code_postal AS "codePostal", ville, pays, telephone, email,
      nombre_couverts AS "nombreCouverts", type_cuisine AS "typeCuisine",
+     twilio_number_usage AS "twilioNumberUsage",
      created_at AS "createdAt", updated_at AS "updatedAt"
      FROM restaurateur_profiles WHERE user_id = $1`,
     [userId]
@@ -33,13 +34,14 @@ async function upsert(userId, data) {
     email,
     nombreCouverts,
     typeCuisine,
+    twilioNumberUsage,
   } = data;
 
   const result = await pool.query(
     `INSERT INTO restaurateur_profiles (
       user_id, nom_etablissement, adresse, code_postal, ville, pays,
-      telephone, email, nombre_couverts, type_cuisine, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+      telephone, email, nombre_couverts, type_cuisine, twilio_number_usage, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
     ON CONFLICT (user_id) DO UPDATE SET
       nom_etablissement = EXCLUDED.nom_etablissement,
       adresse = EXCLUDED.adresse,
@@ -50,6 +52,7 @@ async function upsert(userId, data) {
       email = EXCLUDED.email,
       nombre_couverts = EXCLUDED.nombre_couverts,
       type_cuisine = EXCLUDED.type_cuisine,
+      twilio_number_usage = EXCLUDED.twilio_number_usage,
       updated_at = NOW()`,
     [
       userId,
@@ -62,6 +65,7 @@ async function upsert(userId, data) {
       email ?? null,
       nombreCouverts ? parseInt(nombreCouverts, 10) : null,
       typeCuisine ?? null,
+      twilioNumberUsage ?? null,
     ]
   );
 

@@ -2,6 +2,7 @@ const Stripe = require("stripe");
 const User = require("../models/User");
 const { getPool } = require("../utils/database");
 const { logger } = require("../utils/logger");
+const { sendSubscriptionOnboardingEmail } = require("../utils/emailService");
 
 const VALID_PLAN_IDS = [1, 2, 3, 4, 5];
 
@@ -158,6 +159,16 @@ async function handleWebhook(req, res, next) {
       planId,
       stripeSubscriptionId: subscriptionId,
     });
+    const user = await User.findById(userIdNum);
+    if (user?.email) {
+      // Email non bloquant : ne pas empêcher la validation du webhook si SMTP indisponible.
+      await sendSubscriptionOnboardingEmail({
+        toEmail: user.email,
+        clientName: user.name,
+      });
+    } else {
+      logger.warn({ userId: userIdNum }, "Aucun email utilisateur pour onboarding abonnement");
+    }
     // L'instance est créée après que l'utilisateur ait rempli la modale (infos restaurant) sur Mon espace.
     res.status(200).send("OK");
   } catch (err) {

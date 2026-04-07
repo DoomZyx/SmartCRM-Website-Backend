@@ -12,7 +12,9 @@ const upload = multer({
     cb(new Error("Type de fichier non autorisé (PDF ou image uniquement)."));
   },
 }).fields([
-  { name: "idDocument", maxCount: 1 },
+  { name: "kbisDocument", maxCount: 1 },
+  { name: "idDocumentRecto", maxCount: 1 },
+  { name: "idDocumentVerso", maxCount: 1 },
   { name: "addressDocument", maxCount: 1 },
 ]);
 
